@@ -1,0 +1,110 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+    }
+}
+
+plugins {
+    id 'us.kirchmeier.capsule' version '1.0.2'
+    id 'com.github.sherter.google-java-format' version '0.7.1'
+}
+
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'application'
+
+group 'com.scalar'
+version '1.0'
+
+sourceCompatibility = 1.8
+
+archivesBaseName = 'am'
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile fileTree(dir: 'client', include: '*.jar')
+    compile fileTree(dir: 'client/lib', include: '*.jar')
+    compile 'info.picocli:picocli:3.5.2'
+    testCompile 'org.mockito:mockito-core:2.+'
+    testCompile 'junit:junit:4.12'
+}
+
+mainClassName = 'com.scalar.am.AssetManager'
+
+task fatCapsule(type: FatCapsule) {
+    applicationClass mainClassName
+}
+
+task executableCapsule(type: FatCapsule) {
+    applicationClass mainClassName
+    reallyExecutable
+    archiveName = 'am'
+}
+
+task copyContractsToRootDir(type: Copy) {
+    mustRunAfter "assemble"
+    from("${buildDir}/classes/java/main/com/scalar/am/contract")
+    into("${rootDir}/contract")
+}
+
+task copyJarToRootDir(type: Copy) {
+    mustRunAfter "fatCapsule"
+    from("${libsDir}/${archivesBaseName}-${version}-capsule.jar")
+    into("${rootDir}")
+    rename("${archivesBaseName}-${version}-capsule.jar", "${archivesBaseName}-${version}.jar")
+}
+
+//Copy the contract folder(containing .class of contracts) and the jar to the project root directory
+task prepare(dependsOn: [assemble, fatCapsule, copyJarToRootDir, copyContractsToRootDir])
+
+test {
+    //we want display the following test events
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED"
+    }
+}
+
+sourceSets {
+    integrationTest {
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+            srcDir file('src/integration-test/java')
+        }
+        resources.srcDir file('src/integration-test/resources')
+    }
+}
+
+configurations {
+    integrationTestCompile.extendsFrom testCompile
+    integrationTestRuntime.extendsFrom testRuntime
+}
+
+task integrationTest(type: Test) {
+    onlyIf {
+        System.env['SCALAR_NETWORK_ADDRESS'] != null
+        System.env['SCALAR_NETWORK_PORT'] != null
+    }
+    if (System.env['SCALAR_NETWORK_ADDRESS'] == null || System.env['SCALAR_NETWORK_PORT'] == null) {
+        println "** Please setup environment variables: `SCALAR_NETWORK_ADDRESS` and `SCALAR_NETWORK_PORT` for the integration test **"
+    }
+    description = 'Runs the integration tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    outputs.upToDateWhen { false }
+    shouldRunAfter test
+}
+
+check.dependsOn -= integrationTest

@@ -1,0 +1,9 @@
+bin/
+build/
+out/
+/contract
+.classpath
+.settings
+.project
+am-1.0.jar
+.vscode/

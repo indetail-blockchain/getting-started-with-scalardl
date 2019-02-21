@@ -7,3 +7,4 @@ out/
 .project
 am-1.0.jar
 .vscode/
+.gradle/

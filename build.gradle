@@ -33,8 +33,7 @@ repositories {
 }
 
 dependencies {
-    compile fileTree(dir: 'client', include: '*.jar')
-    compile fileTree(dir: 'client/lib', include: '*.jar')
+    compile group: 'com.scalar-labs', name: 'scalardl-client-sdk', version: '1.0.0-alpha.20190222'
     compile 'info.picocli:picocli:3.5.2'
     testCompile 'org.mockito:mockito-core:2.+'
     testCompile 'junit:junit:4.12'
